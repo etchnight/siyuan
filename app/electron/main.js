@@ -33,7 +33,7 @@ const path = require("path");
 const fs = require("fs");
 const gNet = require("net");
 const remote = require("@electron/remote/main");
-
+const fetch = require("electron-fetch").default;
 process.noAsar = true;
 const appDir = path.dirname(app.getAppPath());
 const isDevEnv = process.env.NODE_ENV === "development";
@@ -65,14 +65,26 @@ try {
 }
 
 const windowNavigate = (currentWindow) => {
-    currentWindow.webContents.on("will-navigate", (event) => {
+    currentWindow.webContents.on("will-navigate", (event, url) => {
+        if (event.sender) {
+            const currentURL = new URL(event.sender.getURL());
+            if (url.startsWith(getServer(currentURL.port))) {
+                return;
+            }
+
+            event.preventDefault();
+            shell.openExternal(url);
+        }
+    });
+
+/*     currentWindow.webContents.on("will-navigate", (event) => {
         const url = event.url;
         if (url.startsWith(localServer)) {
             return;
         }
         event.preventDefault();
         shell.openExternal(url);
-    });
+    }); */
 };
 
 const setProxy = (proxyURL, webContents) => {
@@ -325,7 +337,7 @@ const initMainWindow = () => {
     currentWindow.webContents.userAgent = "SiYuan/" + appVer + " https://b3log.org/siyuan Electron " + currentWindow.webContents.userAgent;
 
     // set proxy
-    net.fetch(getServer() + "/api/system/getNetwork", {method: "POST"}).then((response) => {
+    fetch(getServer() + "/api/system/getNetwork", {method: "POST"}).then((response) => {
         return response.json();
     }).then((response) => {
         setProxy(`${response.data.proxy.scheme}://${response.data.proxy.host}:${response.data.proxy.port}`, currentWindow.webContents).then(() => {
@@ -424,6 +436,7 @@ const initMainWindow = () => {
     Menu.setApplicationMenu(menu);
     // 当前页面链接使用浏览器打开
     windowNavigate(currentWindow);
+
     currentWindow.on("close", (event) => {
         if (currentWindow && !currentWindow.isDestroyed()) {
             currentWindow.webContents.send("siyuan-save-close", false);
@@ -572,7 +585,7 @@ const initKernel = (workspace, port, lang) => {
         writeLog("checking kernel version");
         for (; ;) {
             try {
-                const apiResult = await net.fetch(getServer() + "/api/system/version");
+                const apiResult = await fetch(getServer() + "/api/system/version");
                 apiData = await apiResult.json();
                 bootWindow.loadURL(getServer() + "/appearance/boot/index.html");
                 break;
@@ -593,14 +606,14 @@ const initKernel = (workspace, port, lang) => {
             writeLog("got kernel version [" + apiData.data + "]");
             if (!isDevEnv && apiData.data !== appVer) {
                 writeLog(`kernel [${apiData.data}] is running, shutdown it now and then start kernel [${appVer}]`);
-                net.fetch(getServer() + "/api/system/exit", {method: "POST"});
+                fetch(getServer() + "/api/system/exit", {method: "POST"});
                 bootWindow.destroy();
                 resolve(false);
             } else {
                 let progressing = false;
                 while (!progressing) {
                     try {
-                        const progressResult = await net.fetch(getServer() + "/api/system/bootProgress");
+                        const progressResult = await fetch(getServer() + "/api/system/bootProgress");
                         const progressData = await progressResult.json();
                         if (progressData.data.progress >= 100) {
                             resolve(true);
@@ -610,7 +623,7 @@ const initKernel = (workspace, port, lang) => {
                         }
                     } catch (e) {
                         writeLog("get boot progress failed: " + e.message);
-                        net.fetch(getServer() + "/api/system/exit", {method: "POST"});
+                        fetch(getServer() + "/api/system/exit", {method: "POST"});
                         bootWindow.destroy();
                         resolve(false);
                         progressing = true;
@@ -1079,7 +1092,7 @@ app.whenReady().then(() => {
                 return true;
             }
         });
-        await net.fetch(getServer(data.port) + "/api/system/uiproc?pid=" + process.pid, {method: "POST"});
+        await fetch(getServer(data.port) + "/api/system/uiproc?pid=" + process.pid, {method: "POST"});
     });
     ipcMain.on("siyuan-hotkey", (event, data) => {
         if (!data.hotkeys || data.hotkeys.length === 0) {
@@ -1233,14 +1246,14 @@ app.whenReady().then(() => {
             const currentURL = new URL(item.browserWindow.getURL());
             const server = getServer(currentURL.port);
             writeLog("sync after system resume [" + server + "/api/sync/performSync" + "]");
-            net.fetch(server + "/api/sync/performSync", {method: "POST"});
+            fetch(server + "/api/sync/performSync", {method: "POST"});
         });
     });
     powerMonitor.on("shutdown", () => {
         writeLog("system shutdown");
         workspaces.forEach(item => {
             const currentURL = new URL(item.browserWindow.getURL());
-            net.fetch(getServer(currentURL.port) + "/api/system/exit", {method: "POST"});
+            fetch(getServer(currentURL.port) + "/api/system/exit", {method: "POST"});
         });
     });
     powerMonitor.on("lock-screen", () => {
