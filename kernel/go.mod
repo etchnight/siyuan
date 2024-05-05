@@ -1,6 +1,6 @@
 module github.com/siyuan-note/siyuan/kernel
 
-go 1.22.0
+go 1.20
 
 require (
 	code.sajari.com/docconv v1.3.8
@@ -136,6 +136,7 @@ require (
 	github.com/power-devops/perfstat v0.0.0-20240221224432-82ca36839d55 // indirect
 	github.com/qiniu/go-sdk/v7 v7.20.0 // indirect
 	github.com/quic-go/qpack v0.4.0 // indirect
+	github.com/quic-go/qtls-go1-20 v0.3.4 // indirect
 	github.com/quic-go/quic-go v0.42.0 // indirect
 	github.com/refraction-networking/utls v1.6.4 // indirect
 	github.com/restic/chunker v0.4.0 // indirect
@@ -170,6 +171,8 @@ require (
 
 replace github.com/mattn/go-sqlite3 => github.com/88250/go-sqlite3 v1.14.13-0.20231214121541-e7f54c482950
 
+replace github.com/quic-go/quic-go => github.com/quic-go/quic-go v0.39.0
+replace github.com/imroc/req/v3 => github.com/imroc/req/v3 v3.40.0
 //replace github.com/siyuan-note/dejavu => D:\88250\dejavu
 //replace github.com/siyuan-note/riff => D:\88250\riff
 //replace github.com/siyuan-note/httpclient => D:\88250\httpclient

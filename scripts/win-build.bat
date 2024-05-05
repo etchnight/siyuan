@@ -19,6 +19,7 @@ echo 'Building Kernel'
 @REM 下载x86_64-win32-seh 将其bin添加至环境变量
 
 go version
+@REM 1.20
 set GO111MODULE=on
 set GOPROXY=https://goproxy.io
 set CGO_ENABLED=1
