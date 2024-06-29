@@ -192,6 +192,10 @@
         white-space: nowrap;
         cursor: pointer;
 
+        &[data-dtype="lineNumber"] {
+          cursor: inherit;
+        }
+
         &:first-child {
           padding-left: 1.625em;
           box-sizing: initial;
@@ -280,6 +284,10 @@
 
     &[data-wrap="false"] {
       white-space: nowrap;
+    }
+
+    &[data-block-id] > .block__icon[data-type="copy"] {
+      display: none;
     }
 
     &.dragover__right {

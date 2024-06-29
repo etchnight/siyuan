@@ -45,7 +45,6 @@ import {
     alignImgLeft,
     commonHotkey,
     downSelect,
-    duplicateBlock,
     getStartEndElement,
     upSelect
 } from "./commonHotkey";
@@ -67,7 +66,7 @@ import {avKeydown} from "../render/av/keydown";
 import {checkFold} from "../../util/noRelyPCFunction";
 import {AIActions} from "../../ai/actions";
 import {openLink} from "../../editor/openLink";
-import {onluProtyleCommand} from "../../boot/globalEvent/command/protyle";
+import {onlyProtyleCommand} from "../../boot/globalEvent/command/protyle";
 
 export const getContentByInlineHTML = (range: Range, cb: (content: string) => void) => {
     let html = "";
@@ -249,8 +248,8 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
                                 previousElement = foldElement;
                             }
                         }
-                    } else if (protyle.title && (protyle.wysiwyg.element.firstElementChild.getAttribute("data-eof") === "1" ||
-                        protyle.contentElement.scrollTop === 0)) {
+                    } else if (protyle.title && protyle.title.editElement &&
+                        (protyle.wysiwyg.element.firstElementChild.getAttribute("data-eof") === "1" || protyle.contentElement.scrollTop === 0)) {
                         protyle.title.editElement.focus();
                     } else if (protyle.contentElement.scrollTop !== 0) {
                         protyle.contentElement.scrollTop = 0;
@@ -469,7 +468,7 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
         }
 
         if (matchHotKey(window.siyuan.config.keymap.general.enter.custom, event)) {
-            onluProtyleCommand({
+            onlyProtyleCommand({
                 protyle,
                 command: "enter",
                 previousRange: range,
@@ -480,7 +479,7 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
         }
 
         if (matchHotKey(window.siyuan.config.keymap.general.enterBack.custom, event)) {
-            onluProtyleCommand({
+            onlyProtyleCommand({
                 protyle,
                 command: "enterBack",
                 previousRange: range,
@@ -637,8 +636,9 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
                     (!firstEditElement && nodeElement.isSameNode(protyle.wysiwyg.element.firstElementChild))) {
                     // 不能用\n判断，否则文字过长折行将错误 https://github.com/siyuan-note/siyuan/issues/6156
                     if (getSelectionPosition(nodeElement, range).top - protyle.wysiwyg.element.getBoundingClientRect().top < 40 || nodeElement.classList.contains("av")) {
-                        if (protyle.title && (protyle.wysiwyg.element.firstElementChild.getAttribute("data-eof") === "1" ||
-                            protyle.contentElement.scrollTop === 0)) {
+                        if (protyle.title && protyle.title.editElement &&
+                            (protyle.wysiwyg.element.firstElementChild.getAttribute("data-eof") === "1" ||
+                                protyle.contentElement.scrollTop === 0)) {
                             protyle.title.editElement.focus();
                         } else {
                             protyle.contentElement.scrollTop = 0;
@@ -1242,7 +1242,8 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
             const id = nodeElement.getAttribute("data-node-id");
             const html = nodeElement.outerHTML;
             const editElement = getContenteditableElement(nodeElement);
-            editElement.innerHTML = "```" + window.siyuan.storage[Constants.LOCAL_CODELANG] + "\n" + editElement.textContent + "<wbr>\n```";
+            // 需要 EscapeHTMLStr https://github.com/siyuan-note/siyuan/issues/11451
+            editElement.innerHTML = "```" + window.siyuan.storage[Constants.LOCAL_CODELANG] + "\n" + Lute.EscapeHTMLStr(editElement.textContent) + "<wbr>\n```";
             const newHTML = protyle.lute.SpinBlockDOM(nodeElement.outerHTML);
             nodeElement.outerHTML = newHTML;
             const newNodeElement = protyle.wysiwyg.element.querySelector(`[data-node-id="${id}"]`);
@@ -1439,17 +1440,6 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
             return;
         }
 
-        if (!event.repeat && matchHotKey(window.siyuan.config.keymap.editor.general.duplicate.custom, event)) {
-            event.preventDefault();
-            event.stopPropagation();
-            let selectsElement: HTMLElement[] = Array.from(protyle.wysiwyg.element.querySelectorAll(".protyle-wysiwyg--select"));
-            if (selectsElement.length === 0) {
-                selectsElement = [nodeElement];
-            }
-            duplicateBlock(selectsElement, protyle);
-            return;
-        }
-
         if (!event.repeat && matchHotKey(window.siyuan.config.keymap.editor.general.ai.custom, event)) {
             event.preventDefault();
             event.stopPropagation();
@@ -1535,7 +1525,10 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
         if (refElement) {
             const id = refElement.getAttribute("data-id");
             if (matchHotKey(window.siyuan.config.keymap.editor.general.openBy.custom, event)) {
-                checkFold(id, (zoomIn, action) => {
+                checkFold(id, (zoomIn, action, isRoot) => {
+                    if (!isRoot) {
+                        action.push(Constants.CB_GET_HL);
+                    }
                     openFileById({
                         app: protyle.app,
                         id,
@@ -1561,7 +1554,10 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
                 event.stopPropagation();
                 return true;
             } else if (matchHotKey(window.siyuan.config.keymap.editor.general.insertRight.custom, event)) {
-                checkFold(id, (zoomIn, action) => {
+                checkFold(id, (zoomIn, action, isRoot) => {
+                    if (!isRoot) {
+                        action.push(Constants.CB_GET_HL);
+                    }
                     openFileById({
                         app: protyle.app,
                         id,
@@ -1574,7 +1570,10 @@ export const keydown = (protyle: IProtyle, editorElement: HTMLElement) => {
                 event.stopPropagation();
                 return true;
             } else if (matchHotKey(window.siyuan.config.keymap.editor.general.insertBottom.custom, event)) {
-                checkFold(id, (zoomIn, action) => {
+                checkFold(id, (zoomIn, action, isRoot) => {
+                    if (!isRoot) {
+                        action.push(Constants.CB_GET_HL);
+                    }
                     openFileById({
                         app: protyle.app,
                         id,

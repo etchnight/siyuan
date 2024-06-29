@@ -43,7 +43,7 @@ import {blockRender} from "../protyle/render/blockRender";
 import {renameAsset} from "../editor/rename";
 import {electronUndo} from "../protyle/undo";
 import {pushBack} from "../mobile/util/MobileBackFoward";
-import {copyPNG, exportAsset} from "./util";
+import {copyPNGByLink, exportAsset} from "./util";
 import {removeInlineType} from "../protyle/toolbar/util";
 import {alignImgCenter, alignImgLeft} from "../protyle/wysiwyg/commonHotkey";
 import {checkFold, renameTag} from "../util/noRelyPCFunction";
@@ -365,7 +365,10 @@ export const refMenu = (protyle: IProtyle, element: HTMLElement) => {
         icon: "iconOpen",
         accelerator: window.siyuan.config.keymap.editor.general.openBy.custom + "/" + window.siyuan.languages.click,
         click() {
-            checkFold(refBlockId, (zoomIn, action) => {
+            checkFold(refBlockId, (zoomIn, action, isRoot) => {
+                if (!isRoot) {
+                    action.push(Constants.CB_GET_HL);
+                }
                 openFileById({
                     app: protyle.app,
                     id: refBlockId,
@@ -396,7 +399,10 @@ export const refMenu = (protyle: IProtyle, element: HTMLElement) => {
         icon: "iconLayoutRight",
         accelerator: window.siyuan.config.keymap.editor.general.insertRight.custom + "/⌥" + window.siyuan.languages.click,
         click() {
-            checkFold(refBlockId, (zoomIn, action) => {
+            checkFold(refBlockId, (zoomIn, action, isRoot) => {
+                if (!isRoot) {
+                    action.push(Constants.CB_GET_HL);
+                }
                 openFileById({
                     app: protyle.app,
                     id: refBlockId,
@@ -412,7 +418,10 @@ export const refMenu = (protyle: IProtyle, element: HTMLElement) => {
         icon: "iconLayoutBottom",
         accelerator: window.siyuan.config.keymap.editor.general.insertBottom.custom + (window.siyuan.config.keymap.editor.general.insertBottom.custom ? "/" : "") + "⇧" + window.siyuan.languages.click,
         click() {
-            checkFold(refBlockId, (zoomIn, action) => {
+            checkFold(refBlockId, (zoomIn, action, isRoot) => {
+                if (!isRoot) {
+                    action.push(Constants.CB_GET_HL);
+                }
                 openFileById({
                     app: protyle.app,
                     id: refBlockId,
@@ -957,7 +966,7 @@ export const imgMenu = (protyle: IProtyle, range: Range, assetElement: HTMLEleme
         accelerator: window.siyuan.config.keymap.editor.general.copyBlockRef.custom,
         icon: "iconImage",
         click() {
-            copyPNG(imgElement);
+            copyPNGByLink(imgElement.getAttribute("src"));
         }
     }).element);
     if (!protyle.disabled) {
@@ -1086,9 +1095,7 @@ export const imgMenu = (protyle: IProtyle, range: Range, assetElement: HTMLEleme
         window.siyuan.menus.menu.append(new MenuItem({type: "separator"}).element);
         openMenu(protyle.app, imgSrc, false, false);
     }
-    /// #if !BROWSER
     window.siyuan.menus.menu.append(new MenuItem(exportAsset(imgElement.getAttribute("data-src"))).element);
-    /// #endif
     if (protyle?.app?.plugins) {
         emitOpenMenu({
             plugins: protyle.app.plugins,
@@ -1220,11 +1227,9 @@ export const linkMenu = (protyle: IProtyle, linkElement: HTMLElement, focusText 
     }
     if (linkAddress) {
         openMenu(protyle.app, linkAddress, false, true);
-        /// #if !BROWSER
         if (linkAddress?.startsWith("assets/")) {
             window.siyuan.menus.menu.append(new MenuItem(exportAsset(linkAddress)).element);
         }
-        /// #endif
     }
     if (!protyle.disabled) {
         if (linkAddress?.startsWith("assets/")) {
@@ -1583,9 +1588,7 @@ export const videoMenu = (protyle: IProtyle, nodeElement: Element, type: string)
             submenu: openMenu(protyle.app, VideoSrc, true, false) as IMenu[]
         });
     }
-    /// #if !BROWSER
     subMenus.push(exportAsset(src));
-    /// #endif
     return subMenus;
 };
 

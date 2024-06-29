@@ -22,6 +22,7 @@ import {openNewWindowById} from "../../window/openNewWindow";
 import {genImportMenu} from "../../menus/navigation";
 import {transferBlockRef} from "../../menus/block";
 import {addEditorToDatabase} from "../render/av/addToDatabase";
+import {openFileById} from "../../editor/util";
 
 export const openTitleMenu = (protyle: IProtyle, position: IPosition) => {
     hideTooltip();
@@ -175,20 +176,11 @@ export const openTitleMenu = (protyle: IProtyle, position: IPosition) => {
                     notebook: protyle.notebookId,
                     path: searchPath + ".sy"
                 });
-                const localData = window.siyuan.storage[Constants.LOCAL_SEARCHDATA];
                 popSearch(protyle.app, {
-                    removed: localData.removed,
-                    sort: localData.sort,
-                    group: localData.group,
                     hasReplace: false,
-                    method: localData.method,
                     hPath: pathPosix().join(getNotebookName(protyle.notebookId), pathResponse.data),
                     idPath: [pathPosix().join(protyle.notebookId, searchPath)],
-                    k: localData.k,
-                    r: localData.r,
                     page: 1,
-                    types: Object.assign({}, localData.types),
-                    replaceTypes: Object.assign({}, localData.replaceTypes)
                 });
                 /// #else
                 openSearch({
@@ -204,6 +196,21 @@ export const openTitleMenu = (protyle: IProtyle, position: IPosition) => {
             transferBlockRef(protyle.block.rootID);
         }
         window.siyuan.menus.menu.append(new MenuItem({type: "separator"}).element);
+        /// #if !MOBILE
+        if (!protyle.model) {
+            window.siyuan.menus.menu.append(new MenuItem({
+                label: window.siyuan.languages.openInNewTab,
+                icon: "iconLayoutRight",
+                click() {
+                    openFileById({
+                        app: protyle.app,
+                        id: protyle.block.id,
+                        action: protyle.block.rootID !== protyle.block.id ? [Constants.CB_GET_ALL] : [Constants.CB_GET_CONTEXT],
+                    });
+                }
+            }).element);
+        }
+        /// #endif
         /// #if !BROWSER
         window.siyuan.menus.menu.append(new MenuItem({
             label: window.siyuan.languages.openByNewWindow,
