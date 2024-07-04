@@ -26,6 +26,7 @@ set GOPROXY=https://goproxy.io
 set CGO_ENABLED=1
 
 cd kernel
+@REM go mod init github.com/siyuan-note/siyuan/kernel
 @REM you can use `go mod tidy` to update kernel dependency before build
 @REM you can use `go generate` instead (need add something in main.go)
 goversioninfo -platform-specific=true -icon=resource/icon.ico -manifest=resource/goversioninfo.exe.manifest
